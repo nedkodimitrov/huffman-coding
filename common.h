@@ -16,8 +16,16 @@
 typedef struct node
 {
     char character;
+    int frequency; // How many times the character is encountered
     struct node *left, *right;
 } node;
+
+// Element in the priority queue where Huffman tree nodes are sorted by their character's frequency
+typedef struct priority_queue_element
+{
+    node *pnode;
+    struct priority_queue_element *next;
+} priority_queue_element;
 
 // Recursively free memory used by the Huffman tree
 void freeBinaryTree(node *root);

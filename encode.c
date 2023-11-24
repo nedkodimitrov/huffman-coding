@@ -6,13 +6,6 @@
 // Max length of the huffman code for a single character (im not quite sure what it should be, maybe needs to be set to the height of the tree.)
 #define MAX_ENCODED_CHARACTER_LENGTH 20
 
-// Element in the priority queue where Huffman tree nodes are sorted by their character's frequency
-typedef struct priority_queue_element
-{
-    node *pnode;
-    int frequency; // How many times the character is encountered
-    struct priority_queue_element *next;
-} priority_queue_element;
 
 // Create a Huffman tree from file content. Returns tree root or NULL if unsuccessful.
 node *createHuffmanTree(FILE *fp_in_file);
@@ -114,6 +107,8 @@ int main(int argc, char *argv[])
     fclose(fp_out_file);
 
     freeBinaryTree(root);
+
+    return 0;
 }
 
 
@@ -189,7 +184,7 @@ int pushToPriorityQueue(priority_queue_element **priority_queue, char character,
     new_node->character = character;
     new_node->left = left;
     new_node->right = right;
-    new_queue_element->frequency = frequency;
+    new_node->frequency = frequency;
     new_queue_element->pnode = new_node;
 
     // Insert the new element into the correct position in the queue according to its frequency
@@ -208,6 +203,23 @@ int pushToPriorityQueue(priority_queue_element **priority_queue, char character,
     return 0;
 }
 
+// Pop an element from the priority queue
+node *popPriorityQueue(priority_queue_element **priority_queue)
+{
+    node *node = NULL;
+    if(*priority_queue)
+    {
+        priority_queue_element *temp = *priority_queue;
+        node = (*priority_queue)->pnode;
+        
+        *priority_queue = (*priority_queue)->next;
+        
+        free(temp);
+    }
+
+    return node;
+}
+
 // Find the correct position in the priority queue for an element based on its frequency. Returns the queue element after which to insert the new one.
 priority_queue_element *findPositionInPriorityQueue(int frequency, priority_queue_element *priority_queue)
 {
@@ -215,7 +227,7 @@ priority_queue_element *findPositionInPriorityQueue(int frequency, priority_queu
     priority_queue_element *position = NULL;
 
     // Traverse the queue until we reach an element with greater or equal frequency
-    while (priority_queue && priority_queue->frequency <= frequency)
+    while (priority_queue && priority_queue->pnode->frequency <= frequency)
     {
         position = priority_queue;
         priority_queue = priority_queue->next;
@@ -228,45 +240,37 @@ priority_queue_element *findPositionInPriorityQueue(int frequency, priority_queu
 // Transform a priority queue into a Huffman tree and free the memory used by the queue. Returns tree root or NULL if unsuccesful.
 node *priorityQueueToHuffmanTree(priority_queue_element **priority_queue)
 {
-    priority_queue_element *temp; // used when freeing elements of priority_queue
-    node *root = NULL; // The root of the Huffman tree that is going to be created
-
-    while ((*priority_queue)->next)
+    node *node1 = NULL, *node2 = NULL;
+    
+    // Sum all elements in the queue until only one remains, which is going to be the root of the Huffman tree
+    while(1)
     {
+        // Pop the first two elements in the priority queue
+        node1 = popPriorityQueue(priority_queue);
+        node2 = popPriorityQueue(priority_queue);
+
+        if(node2 == NULL)
+        {
+            // The last remaining queue element is the root of the Huffman tree
+            return node1;
+        }
         // Add a new element to priority_queue which is a parent to the first two and its frequency is the sum of the two
-        if (pushToPriorityQueue(priority_queue, '\0', (*priority_queue)->frequency + (*priority_queue)->next->frequency,
-                                (*priority_queue)->pnode, (*priority_queue)->next->pnode) == -1)
+        if (pushToPriorityQueue(priority_queue, '\0', node1->frequency + node2->frequency, node1, node2) == -1)
         {
             perror("Failed to create the Hufman tree from the priority queue!\n");
             freePriorityQueue(priority_queue);
             return NULL;
         }
-
-        // Free first two elements after they were summed
-        temp = *priority_queue;
-        *priority_queue = temp->next->next;
-        free(temp->next);
-        free(temp);
     }
-    
-    // Free the last remaining queue element and return it's node - the root of the Huffman tree
-    root = (*priority_queue)->pnode;
-    free(*priority_queue);
-    return root;
 }
 
 // Free priority queue and its nodes. Used when failed to allocate memory for a new element and must exit the program.
 void freePriorityQueue(priority_queue_element **priority_queue)
 {
-    priority_queue_element *temp;
-
     // Free the current priority queue element and go to the next until reach NULL
-    while (*priority_queue)
+    for(node *temp = popPriorityQueue(priority_queue); temp != NULL; temp = popPriorityQueue(priority_queue))
     {
-        temp = *priority_queue;
-        *priority_queue = (*priority_queue)->next;
-        freeBinaryTree(temp->pnode);
-        free(temp);
+        freeBinaryTree(temp);
     }
 }
 
@@ -292,14 +296,14 @@ int encode(node *root, long num_characters, FILE *fp_in_file, FILE *fp_out_file)
     // Write the encoding of each character of message into the encoded_message_file
     while ((character = fgetc(fp_in_file)) != EOF)
     {
-        for(int i = 0, len = strlen(encoded_characters_table[(int)character]); i < len; i++)
+        for (int i = 0, len = strlen(encoded_characters_table[(int)character]); i < len; i++)
         {
             writeToOutputFile(fp_out_file, encoded_characters_table[(int)character][i] - '0', 1);
         }
     }
 
     // fill the last byte
-    for(int i = 0; i < CHAR_BIT - 1; i++)
+    for (int i = 0; i < CHAR_BIT - 1; i++)
     {
         writeToOutputFile(fp_out_file, 0, 1);
     }
@@ -331,7 +335,7 @@ void populateEncodedCharactersTable(node *root, int tree_level,
             // Store the path to the leaf in the coresponding row of encoded_characters_table
             character_code[tree_level] = '\0';
             strcpy(encoded_characters_table[(int)root->character], character_code);
-            printf("Character:%c,Encoded:%s\n", root->character, character_code); // FIXME remove
+            printf("Character:%c,Encoded:%s\n", root->character, character_code);
         }
     }
 }
