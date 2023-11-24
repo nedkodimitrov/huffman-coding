@@ -44,7 +44,7 @@ void populateEncodedCharactersTable(node *root, int tree_level,
 
 // Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
 void serializeTree(node *root, FILE *fp_out_file);
-int treeSize(node *root);
+unsigned int treeSize(node *root);
 int writeToOutputFile(FILE *fp_out_file, char byte, int is_bit);
 int writeBitToOutputFile(FILE *fp_out_file, char bit);
 
@@ -285,8 +285,8 @@ int encode(node *root, long num_characters, FILE *fp_in_file, FILE *fp_out_file)
     // write the encoded file header
     // Write the number of characters in the input file in the header of the compressed file
     fwrite(&num_characters, sizeof(num_characters), 1, fp_out_file);
-    long tree_size = treeSize(root);
-    fwrite(&tree_size, sizeof(long), 1, fp_out_file);
+    unsigned int tree_size = treeSize(root);
+    fwrite(&tree_size, sizeof(unsigned int), 1, fp_out_file);
     serializeTree(root, fp_out_file);
 
     // Write the encoding of each character of message into the encoded_message_file
@@ -337,7 +337,7 @@ void populateEncodedCharactersTable(node *root, int tree_level,
 }
 
 // Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
-int treeSize(node *root)
+unsigned int treeSize(node *root)
 {
     if (root)
     {
