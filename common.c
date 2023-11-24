@@ -16,8 +16,8 @@ void traversehuffmanTree(node *root)
 {
     if (root)
     {
-        printf("%c\n", root->character);
         traversehuffmanTree(root->left);
         traversehuffmanTree(root->right);
+        printf("%c\n", root->character);
     }
 }

@@ -15,10 +15,10 @@ typedef struct priority_queue_element
 } priority_queue_element;
 
 // Create a Huffman tree from file content. Returns tree root or NULL if unsuccessful.
-node *createHuffmanTree(FILE *fp);
+node *createHuffmanTree(FILE *fp_in_file);
 
 // Populate a frequency table for a given file's content (how many times each character is encountered in the file)
-void populateFrequencyTable(FILE *fp, int *frequency_table);
+void populateFrequencyTable(FILE *fp_in_file, int *frequency_table);
 
 // Create a priority queue from a frequency table (priority queue where Huffman tree nodes are sorted by their character's frequency). Returns the top of the queue.
 priority_queue_element *frequencyTableToPriorityQueue(int *frequency_table);
@@ -32,8 +32,21 @@ priority_queue_element *findPositionInPriorityQueue(int frequency, priority_queu
 // Transform a priority queue into a Huffman tree and free the memory used by the queue. Returns tree root or NULL if unsuccesful.
 node *priorityQueueToHuffmanTree(priority_queue_element **priority_queue);
 
-// Free priority queue and its nodes. Used when failed to allocate memory for a new element and must exit the program.
+// ree priority queue and its nodes. Used when failed to allocate memory for a new element and must exit the program.
 void freePriorityQueue(priority_queue_element **priority_queue);
+
+// Encode a file using the Huffman tree built from it. Returns 0 if successful and -1 if unsucessful.
+int encode(node *root, long num_characters, FILE *fp_in_file, FILE *fp_out_file);
+
+// Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
+void populateEncodedCharactersTable(node *root, int tree_level,
+                                    char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH]);
+
+// Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
+void serializeTree(node *root, FILE *fp_out_file);
+int treeSize(node *root);
+int writeToOutputFile(FILE *fp_out_file, char *string, int is_bit);
+int writeBitToOutputFile(FILE *fp_out_file, char bit);
 
 
 int main(int argc, char *argv[])
@@ -42,7 +55,7 @@ int main(int argc, char *argv[])
     char out_file_name[COMPRESSED_FILE_NAME_MAX_LENGTH] = {'\0'};  // Name of the compressed file
     FILE *fp_in_file = NULL;
     FILE *fp_out_file = NULL;
-    node *huffman_root = NULL;  // The root of the Huffman tree
+    node *root = NULL;  // The root of the Huffman tree
 
     if (argc == 2)
     {
@@ -68,8 +81,8 @@ int main(int argc, char *argv[])
     }
 
     // Create the Huffman tree of the input file content
-    huffman_root = createHuffmanTree(fp_in_file);
-    if (huffman_root == NULL)
+    root = createHuffmanTree(fp_in_file);
+    if (root == NULL)
     {
         perror("Failed to create the Huffman tree of the input file content!\n");
         fclose(fp_in_file);
@@ -84,32 +97,33 @@ int main(int argc, char *argv[])
     {
         perror("Failed to open the input file!\n");
         fclose(fp_in_file);
-        freeBinaryTree(huffman_root);
+        freeBinaryTree(root);
         return -1;
     }
 
     // Encode the contents of the input file and save them in the output file
+    long num_characters = ftell(fp_in_file);
     fseek(fp_in_file, 0, SEEK_SET);
-    //encode(huffman_root, fp_in_file, fp_out_file);
+    encode(root, num_characters, fp_in_file, fp_out_file);
 
-    //printf("Compression ratio = %.2ld", ftell(fp_out_file) / ftell(fp_in_file));
+    //printf("Compression ratio = %.2ld", ftell(fp_out_file) / num_characters);
 
-    traversehuffmanTree(huffman_root);
+    //traversehuffmanTree(root);
     
     fclose(fp_in_file);
     fclose(fp_out_file);
 
-    freeBinaryTree(huffman_root);
+    freeBinaryTree(root);
 }
 
 
 // Create a Huffman tree from file content. Returns tree root or NULL if unsuccessful.
-node *createHuffmanTree(FILE *fp)
+node *createHuffmanTree(FILE *fp_in_file)
 {
     int frequency_table[NUM_ASCII] = {0}; // How many times each character is encountered in the message
     priority_queue_element *priority_queue = NULL; // Priority queue where Huffman tree nodes are sorted by their character's frequency
 
-    populateFrequencyTable(fp, frequency_table);
+    populateFrequencyTable(fp_in_file, frequency_table);
 
     priority_queue = frequencyTableToPriorityQueue(frequency_table);
     if (priority_queue == NULL)
@@ -123,12 +137,12 @@ node *createHuffmanTree(FILE *fp)
 }
 
 // Populate a frequency table for a given file's content (how many times each character is encountered in the file)
-void populateFrequencyTable(FILE *fp, int *frequency_table)
+void populateFrequencyTable(FILE *fp_in_file, int *frequency_table)
 {
     char character;
 
     // Every time a character is encountered in the file, increment its frequency in the table
-    while ((character = fgetc(fp)) != EOF)
+    while ((character = fgetc(fp_in_file)) != EOF)
     {
         frequency_table[(int)(character)]++;
     }
@@ -254,4 +268,140 @@ void freePriorityQueue(priority_queue_element **priority_queue)
         freeBinaryTree(temp->pnode);
         free(temp);
     }
+}
+
+// Encode a file using the Huffman tree built from it. Returns 0 if successful and -1 if unsucessful.
+int encode(node *root, long num_characters, FILE *fp_in_file, FILE *fp_out_file)
+{
+    // Table to store characters and their Huffman binary codes 
+    // first dimension corresponds to ASCII character, second dimension is the encoded character (the path in the Huffman tree)
+    // used because otherwise would have to blindly traverse the whole tree for every character in message
+    char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH] = { [0 ... NUM_ASCII - 1] = { '\0' } };
+    //char character_code[MAX_ENCODED_CHARACTER_LENGTH]; // used when encoding individual characters in populateEncodedCharactersTable()
+    char character;
+
+    populateEncodedCharactersTable(root, 0, encoded_characters_table);
+
+    // write the encoded file header
+    // Write the number of characters in the input file in the header of the compressed file
+    fwrite(&num_characters, sizeof(num_characters), 1, fp_out_file);
+    long tree_size = treeSize(root);
+    fwrite(&tree_size, sizeof(long), 1, fp_out_file);
+    serializeTree(root, fp_out_file);
+
+    // Write the encoding of each character of message into the encoded_message_file
+    while ((character = fgetc(fp_in_file)) != EOF)
+    {
+        writeToOutputFile(fp_out_file, encoded_characters_table[(int)character], 1);
+    }
+
+    writeToOutputFile(fp_out_file, "0000000", 1); // fill the last byte
+    
+
+    return 0;
+}
+
+// Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
+void populateEncodedCharactersTable(node *root, int tree_level,
+                                    char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH])
+
+{
+    static char character_code[MAX_ENCODED_CHARACTER_LENGTH] = {'\0'}; // keeps track of the path in the tree to the character (which is how the character is encoded)
+
+    if (root)
+    {
+        // Write 0 in the path to the leaf when going to the left subtree
+        character_code[tree_level] = '0';
+        populateEncodedCharactersTable(root->left, tree_level + 1, encoded_characters_table);
+
+        // Write 1 in the path to the leaf when going to the right subtree
+        character_code[tree_level] = '1';
+        populateEncodedCharactersTable(root->right, tree_level + 1, encoded_characters_table);
+
+        // If we reached a leaf (the characters are stored in the leafs. the other nodes have '\0' for their character)
+        if (root->left == NULL && root->right == NULL)
+        {
+            // Store the path to the leaf in the coresponding row of encoded_characters_table
+            character_code[tree_level] = '\0';
+            strcpy(encoded_characters_table[(int)root->character], character_code);
+            printf("Character:%c,Encoded:%s\n", root->character, character_code); // FIXME remove
+        }
+    }
+}
+
+// Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
+int treeSize(node *root)
+{
+    if (root)
+    {
+        return  1 + treeSize(root->left) + treeSize(root->right);
+    }
+    return 0;
+}
+
+
+// Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
+void serializeTree(node *root, FILE *fp_out_file)
+{
+    if (root)
+    {
+        serializeTree(root->left, fp_out_file);
+        serializeTree(root->right, fp_out_file);
+
+        // If we reached a leaf (the characters are stored in the leafs. the other nodes have '\0' for their character)
+        if (root->left == NULL && root->right == NULL)
+        {
+            writeToOutputFile(fp_out_file, "1", 1);
+            writeToOutputFile(fp_out_file, &(root->character), 0);
+            printf("1%c%x\n", root->character, root->character);
+        }
+        else
+        {
+            writeToOutputFile(fp_out_file, "0", 1);
+            printf("0\n");
+        }
+    }
+}
+
+int writeToOutputFile(FILE *fp_out_file, char *string, int is_bit)
+{
+    printf("THIS %s, %d\n", string, is_bit);
+    for (int i = 0, len = strlen(string); i < len; i++)
+    {
+        if (is_bit)
+        {
+            writeBitToOutputFile(fp_out_file, string[i]);
+        }
+        else
+        {
+            for (int j = CHAR_BIT - 1; j >= 0; j--)
+            {
+                writeBitToOutputFile(fp_out_file, (string[i] >> j) & 1);
+                printf("%d\n", (string[i] >> j) & 1);
+            }
+        }
+    }
+    
+    return 0;
+}
+
+int writeBitToOutputFile(FILE *fp_out_file, char bit)
+{
+    static char byte = '\0';
+    static short int bits = 0;
+
+    byte = (byte << 1) | bit;
+    bits++;
+    if (bits == CHAR_BIT)
+    {
+        if (fputc(byte, fp_out_file) == EOF)
+        {
+            perror("Failed to write a byte to the output file!");
+            return -1;
+        }
+        bits = 0;
+        byte = '\0';
+    }
+
+    return 0;
 }

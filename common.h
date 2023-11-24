@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define FILE_NAME_MAX_LENGTH 100
 #define COMPRESSED_FILE_EXTENSION ".huff"
