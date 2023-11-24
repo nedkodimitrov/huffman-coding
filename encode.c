@@ -45,7 +45,7 @@ void populateEncodedCharactersTable(node *root, int tree_level,
 // Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table
 void serializeTree(node *root, FILE *fp_out_file);
 int treeSize(node *root);
-int writeToOutputFile(FILE *fp_out_file, char *string, int is_bit);
+int writeToOutputFile(FILE *fp_out_file, char byte, int is_bit);
 int writeBitToOutputFile(FILE *fp_out_file, char bit);
 
 
@@ -292,10 +292,17 @@ int encode(node *root, long num_characters, FILE *fp_in_file, FILE *fp_out_file)
     // Write the encoding of each character of message into the encoded_message_file
     while ((character = fgetc(fp_in_file)) != EOF)
     {
-        writeToOutputFile(fp_out_file, encoded_characters_table[(int)character], 1);
+        for(int i = 0, len = strlen(encoded_characters_table[(int)character]); i < len; i++)
+        {
+            writeToOutputFile(fp_out_file, encoded_characters_table[(int)character][i] - '0', 1);
+        }
     }
 
-    writeToOutputFile(fp_out_file, "0000000", 1); // fill the last byte
+    // fill the last byte
+    for(int i = 0; i < CHAR_BIT - 1; i++)
+    {
+        writeToOutputFile(fp_out_file, 0, 1);
+    }
     
 
     return 0;
@@ -351,34 +358,27 @@ void serializeTree(node *root, FILE *fp_out_file)
         // If we reached a leaf (the characters are stored in the leafs. the other nodes have '\0' for their character)
         if (root->left == NULL && root->right == NULL)
         {
-            writeToOutputFile(fp_out_file, "1", 1);
-            writeToOutputFile(fp_out_file, &(root->character), 0);
-            printf("1%c%x\n", root->character, root->character);
+            writeToOutputFile(fp_out_file, 1, 1);
+            writeToOutputFile(fp_out_file, root->character, 0);
         }
         else
         {
-            writeToOutputFile(fp_out_file, "0", 1);
-            printf("0\n");
+            writeToOutputFile(fp_out_file, 0, 1);
         }
     }
 }
 
-int writeToOutputFile(FILE *fp_out_file, char *string, int is_bit)
+int writeToOutputFile(FILE *fp_out_file, char byte, int is_bit)
 {
-    printf("THIS %s, %d\n", string, is_bit);
-    for (int i = 0, len = strlen(string); i < len; i++)
+    if (is_bit)
     {
-        if (is_bit)
+        writeBitToOutputFile(fp_out_file, byte);
+    }
+    else
+    {
+        for (int j = CHAR_BIT - 1; j >= 0; j--)
         {
-            writeBitToOutputFile(fp_out_file, string[i]);
-        }
-        else
-        {
-            for (int j = CHAR_BIT - 1; j >= 0; j--)
-            {
-                writeBitToOutputFile(fp_out_file, (string[i] >> j) & 1);
-                printf("%d\n", (string[i] >> j) & 1);
-            }
+            writeBitToOutputFile(fp_out_file, (byte >> j) & 1);
         }
     }
     
@@ -387,7 +387,7 @@ int writeToOutputFile(FILE *fp_out_file, char *string, int is_bit)
 
 int writeBitToOutputFile(FILE *fp_out_file, char bit)
 {
-    static char byte = '\0';
+    static unsigned char byte = '\0';
     static short int bits = 0;
 
     byte = (byte << 1) | bit;
