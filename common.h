@@ -33,9 +33,6 @@ int getFileName(int argc, char *argv[], char *filename, size_t max_length);
 // Recursively free memory used by the Huffman tree
 void freeBinaryTree(node *root);
 
-// Used for debugging
-void traversehuffmanTree(node *root);
-
 // Create a new Huffman tree node
 node *createNode(char character, int frequency, node *left, node *right);
 

@@ -34,19 +34,6 @@ void freeBinaryTree(node *root)
 }
 
 
-// Used for debugging
-void traversehuffmanTree(node *root)
-{
-    if (root)
-    {
-        traversehuffmanTree(root->left);
-        traversehuffmanTree(root->right);
-        printf("%c\n", root->character);
-        printf("%d\n", root->frequency);
-    }
-}
-
-
 // Create a new Huffman tree node
 node *createNode(char character, int frequency, node *left, node *right)
 {
