@@ -146,12 +146,12 @@ node *createHuffmanTree(FILE *fp_in_file)
 // Populate a frequency table for a given file's content (how many times each character is encountered in the file)
 void populateFrequencyTable(FILE *fp_in_file, int *frequency_table)
 {
-    char character;
+    int character;  // fgetc returns an int so that it can represent every character and EOF
 
     // Every time a character is encountered in the file, increment its frequency in the table
     while ((character = fgetc(fp_in_file)) != EOF)
     {
-        frequency_table[(int)(character)]++; //  e.g. frequency_table['a']++
+        frequency_table[(character)]++; //  e.g. frequency_table['a']++
     }
 }
 
@@ -295,13 +295,14 @@ int writeSerializedHuffmanTreeToFile(node *root, FILE *fp_out_file)
 int writeEncodedFileContent(char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH], FILE *fp_in_file,
                             FILE *fp_out_file)
 {
-    char character;
+    int character;  // fgetc returns an int so that it can represent every character and EOF
+
     // Write the encoding of each character into the compressed file.
     while ((character = fgetc(fp_in_file)) != EOF)
     {
-        for (int i = 0, len = strlen(encoded_characters_table[(int)character]); i < len; i++)
+        for (int i = 0, len = strlen(encoded_characters_table[character]); i < len; i++)
         {
-            if (writeBitToFile(fp_out_file, encoded_characters_table[(int)character][i] - '0') == EOF)
+            if (writeBitToFile(fp_out_file, encoded_characters_table[character][i] - '0') == EOF)
             {
                 perror("Failed to write the encoded content!\n");
                 return EOF;
@@ -341,15 +342,15 @@ int writeCharToFile(FILE *fp_out_file, char byte)
 // After CHAR_BIT (8) bits have been accumulated, write a byte to the file. Returns EOF if unsucessful.
 int writeBitToFile(FILE *fp_out_file, char bit)
 {
-    static unsigned char byte = 0;
-    static short int bits = 0;
+    static unsigned char byte = 0;  // The byte written to the file
+    static short int bits_written = 0;  // number of bits written so far
 
     // Add the new bit to the other bits of the previous calls of the function.
     byte = (byte << 1) | bit;
-    bits++;
+    bits_written++;
 
     // We can't write an individual bit to a file, but rather a whole byte.
-    if (bits == CHAR_BIT)
+    if (bits_written == CHAR_BIT)
     {
         if (fputc(byte, fp_out_file) == EOF)
         {
@@ -357,7 +358,7 @@ int writeBitToFile(FILE *fp_out_file, char bit)
             return EOF;
         }
 
-        bits = 0;
+        bits_written = 0;
         byte = 0;
     }
 
