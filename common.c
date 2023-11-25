@@ -14,7 +14,7 @@ int getFileName(int argc, char *argv[], char *filename, size_t max_length)
     }
     else
     {
-        perror("Usage: ./encode <file name>");
+        printf("Usage: %s <file name>\n", argv[0]);
         return -1;
     }
 

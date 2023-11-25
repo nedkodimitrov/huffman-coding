@@ -16,54 +16,59 @@ int readBitFromFile(FILE *fp_in_file, char *bit);
 
 int main(int argc, char *argv[])
 {
-    char file_name[COMPRESSED_FILE_NAME_MAX_LENGTH] = {'\0'};  // container for the names of the input file and the output file
-    char decoded_file_name[COMPRESSED_FILE_NAME_MAX_LENGTH + 8] = "decoded_";  // the name of the output decoded file
+    char in_file_name[FILE_NAME_MAX_LENGTH + COMPRESSED_FILE_EXTENSION_LENGTH] = {'\0'};  // container for the name of the compressed input file
+    char out_file_name[FILE_NAME_MAX_LENGTH + 8] = "decoded_";  // The name of the output decoded file
     node *root;  // The root of the reconstructed Huffman tree
     FILE *fp_in_file = NULL;  // File pointer for the input file
     FILE *fp_out_file = NULL;  // File pointer for the output file
     long decoded_file_size;  // The size of the unencoded input file (number of characters)
     unsigned short int tree_size; // number of nodes in the Huffman tree
 
-    // Get the name of the file that will be decompressed from the CLA
-    if (getFileName(argc, argv, file_name, COMPRESSED_FILE_NAME_MAX_LENGTH) == -1)
+    // Get the name of the file that will be decompressed from the CLA; Make sure it ends with COMPRESSED_FILE_EXTENSION (.huff)
+    if ((getFileName(argc, argv, in_file_name, FILE_NAME_MAX_LENGTH + COMPRESSED_FILE_EXTENSION_LENGTH) == -1)
+        || (strlen(in_file_name) < COMPRESSED_FILE_EXTENSION_LENGTH + 1)
+        || (strcmp(in_file_name + strlen(in_file_name) - COMPRESSED_FILE_EXTENSION_LENGTH + 1, COMPRESSED_FILE_EXTENSION) != 0))
     {
-        return -1;
+        perror("Invalid input file name!\n");
+        return INVALID_FILE_NAME;
     }
-    // Read the content of the input file into a string
-    fp_in_file = fopen(file_name, "r");
+    // Open the input .huff file that will be decoded
+    fp_in_file = fopen(in_file_name, "r");
     if (fp_in_file == NULL)
     {
         perror("Failed to open the input file!\n");
-        return -1;
+        return FAIL_OPEN_INPUT_FILE;
     }
 
     // Read the size of the unencoded file and the size of the Huffman tree from the header of the compressed file.
     if (fread(&decoded_file_size, sizeof(decoded_file_size), 1, fp_in_file) < 1
         || fread(&tree_size, sizeof(tree_size), 1, fp_in_file) < 1)
     {
+        perror("Failed to read the header of the input file!");
         fclose(fp_in_file);
-        return -1;
+        return FAIL_READ_HEADER;
     }
 
     // Reconstruct the Huffman tree from its serialized representation in the header of the comrpessed file.
     root = ReconstructHuffmanTree(fp_in_file, tree_size);
     if (root == NULL)
     {
+        perror("Failed to create the Huffman tree!");
         fclose(fp_in_file);
-        return -1;
+        return FAIL_CREATE_HUFFMAN_TREE;
     }
 
     // Open the output file where the compressed content of input file will be stored
     // Remove the huffman extension from the name of the file
-    strcat(decoded_file_name, file_name);
-    decoded_file_name[strlen(decoded_file_name) - (COMPRESSED_FILE_NAME_MAX_LENGTH - FILE_NAME_MAX_LENGTH)] = '\0';
-    fp_out_file = fopen(decoded_file_name, "w");
+    strcat(out_file_name, in_file_name);
+    out_file_name[strlen(out_file_name) - COMPRESSED_FILE_EXTENSION_LENGTH + 1] = '\0';
+    fp_out_file = fopen(out_file_name, "w");
     if (fp_out_file == NULL)
     {
         perror("Failed to open the output file!\n");
         fclose(fp_in_file);
         freeBinaryTree(root);
-        return -1;
+        return FAIL_OPEN_OUTPUT_FILE;
     }
 
     // Write the decoded content of the input file into the output file
@@ -72,14 +77,16 @@ int main(int argc, char *argv[])
         fclose(fp_in_file);
         fclose(fp_out_file);
         freeBinaryTree(root);
-        return -1;
+        return FAIL_READ_BODY;
     }
+
+    printf("\nSuccessfully deencoded %s into %s!\n", in_file_name, out_file_name);
 
     // Close opened file and free allocated memory
     fclose(fp_in_file);
     fclose(fp_out_file);
     freeBinaryTree(root);
-    
+
     return 0;
 }
 
@@ -93,7 +100,7 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
     node *node1 = NULL, *node2 = NULL;
     node *root = NULL;
 
-    // Read all tree nodes
+    // Read all tree nodes from the header of the file
     for (unsigned short int i = 0; i < tree_size; i++)
     {
         if (readBitFromFile(fp_in_file, &bit) == EOF)
@@ -102,7 +109,7 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
             return NULL;
         }
         
-        if (bit == 1)  // Leaves are denoted as 1 followed by a character (The characters are stored in the leaves).
+        if (bit == 1)  // Leaves are denoted as 1 followed by a character (The characters are stored in the leaves of the Huffman tree).
         {
             // Push a new element to the stack
             if (readCharFromFile(fp_in_file, &character) == EOF || pushToPriorityQueue(&stack_top, character, 1, NULL, NULL) == -1)
@@ -113,10 +120,9 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
         }
         else  // Parent nodes are denoted as 0
         {
+            // Pop 2 elements from the stack and add a new one which is parent to them and has no character associated with it.
             node1 = popPriorityQueue(&stack_top);
             node2 = popPriorityQueue(&stack_top);
-
-            // Pop 2 elements from the stack and add a new one which is parent to them and has no character associated with it.
             if (node1 == NULL || node2 == NULL || pushToPriorityQueue(&stack_top, '\0', 1, node2, node1) == -1)
             {
                 freePriorityQueue(&stack_top);
@@ -211,7 +217,7 @@ int readBitFromFile(FILE *fp_in_file, char *bit)
     {
         if ((i_byte = fgetc(fp_in_file)) == EOF)
         {
-            perror("Failed to read from input file!");
+            perror("Failed to read a byte from input file!");
             return EOF;
         }
         remaining_bits = CHAR_BIT;

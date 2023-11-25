@@ -48,7 +48,8 @@ int writeCharToFile(FILE *fp_out_file, char byte);
 
 int main(int argc, char *argv[])
 {
-    char file_name[COMPRESSED_FILE_NAME_MAX_LENGTH] = {'\0'};  // container for the names of the input file and the output file
+    char in_file_name[FILE_NAME_MAX_LENGTH];  // container for the name of the input file that will be compressed
+    char out_file_name[FILE_NAME_MAX_LENGTH + COMPRESSED_FILE_EXTENSION_LENGTH] = {'\0'};  // container for the name of the compressed output file
     FILE *fp_in_file = NULL;  // File pointer for the input file
     FILE *fp_out_file = NULL;  // File pointer for the output file
     node *root = NULL;  // The root of the Huffman tree
@@ -63,38 +64,40 @@ int main(int argc, char *argv[])
     long in_file_size; // size of the input file - how many characters it contains
 
     // Get the name of the file that will be compressed from the CLA
-    if (getFileName(argc, argv, file_name, FILE_NAME_MAX_LENGTH) == -1)
+    if (getFileName(argc, argv, in_file_name, FILE_NAME_MAX_LENGTH) == -1)
     {
-        return -1;
+        return INVALID_FILE_NAME;
     }
-    // Read the content of the input file into a string
-    fp_in_file = fopen(file_name, "r");
+    // Open the input txt file that will be compressed
+    fp_in_file = fopen(in_file_name, "r");
     if (fp_in_file == NULL)
     {
         perror("Failed to open the input file!\n");
-        return -1;
+        return FAIL_OPEN_INPUT_FILE;
     }
 
     // Create the Huffman tree of the input file content
     root = createHuffmanTree(fp_in_file);
     if (root == NULL)
     {
+        perror("Failed to create the Huffman tree!");
         fclose(fp_in_file);
-        return -1;
+        return FAIL_CREATE_HUFFMAN_TREE;
     }
 
-    // Store the huffman codes for each character in a table
+    // Store the huffman codes for each character in a table; get the number of nodes in tehe Huffman tree
     tree_size = populateEncodedCharactersTable(root, 0, encoded_characters_table);
 
     // Open the output file where the compressed content of input file will be stored
-    strcat(file_name, COMPRESSED_FILE_EXTENSION);
-    fp_out_file = fopen(file_name, "w");
+    strcpy(out_file_name, in_file_name);
+    strcat(out_file_name, COMPRESSED_FILE_EXTENSION);
+    fp_out_file = fopen(out_file_name, "w");
     if (fp_out_file == NULL)
     {
         perror("Failed to open the output file!\n");
         fclose(fp_in_file);
         freeBinaryTree(root);
-        return -1;
+        return FAIL_OPEN_OUTPUT_FILE;
     }
 
     // Write the header of the compressed file
@@ -104,7 +107,7 @@ int main(int argc, char *argv[])
         fclose(fp_in_file);
         fclose(fp_out_file);
         freeBinaryTree(root);
-        return -1;
+        return FAIL_WRITE_HEADER;
     }
     
     // Write the encoded content of the input file into the output file
@@ -114,10 +117,10 @@ int main(int argc, char *argv[])
         fclose(fp_in_file);
         fclose(fp_out_file);
         freeBinaryTree(root);
-        return -1;
+        return FAIL_WRITE_BODY;
     }
 
-    printf("Compression ratio = %.2lf%%\n", (double) ftell(fp_out_file) / in_file_size * 100);
+    printf("\nSuccessfully encoded the file!\n%s is %.2lf%% the size of %s\n", out_file_name, ((double) ftell(fp_out_file) / in_file_size * 100), in_file_name);
     
     // Close opened file and free allocated memory
     fclose(fp_in_file);
