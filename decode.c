@@ -23,7 +23,7 @@ int readBitFromFile(FILE *fp_in_file, char *bit);
 int main(int argc, char *argv[])
 {
     char in_file_name[FILE_NAME_MAX_LENGTH + COMPRESSED_FILE_EXTENSION_LENGTH] = {'\0'};  // container for the name of the compressed input file
-    char out_file_name[FILE_NAME_MAX_LENGTH - COMPRESSED_FILE_EXTENSION_LENGTH + 8] = "decoded_";  // The name of the output decoded file
+    char out_file_name[FILE_NAME_MAX_LENGTH + 8] = "decoded_";  // The name of the output decoded file
     node *root;  // The root of the reconstructed Huffman tree
     FILE *fp_in_file = NULL;  // File pointer for the input file
     FILE *fp_out_file = NULL;  // File pointer for the output file
@@ -108,7 +108,8 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
 {
     char bit;
     char character;
-    static priority_queue_element *stack_top = NULL;  // Here the priority queue is used as a stack that helps us reconstruct the serialized Huffman tree
+    // Here the priority queue is used as a stack that helps us reconstruct the serialized Huffman tree
+    static priority_queue_element *stack_top = NULL;
     node *node1 = NULL, *node2 = NULL;
     node *root = NULL;
 

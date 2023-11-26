@@ -129,7 +129,8 @@ int main(int argc, char *argv[])
         return FAIL_WRITE_BODY;
     }
 
-    printf("\nSuccessfully encoded the file!\n%s is %.2lf%% the size of %s\n", out_file_name, ((double) ftell(fp_out_file) / in_file_size * 100), in_file_name);
+    printf("\nSuccessfully encoded the file!\n%s is %.2lf%% the size of %s\n", out_file_name,
+           ((double) ftell(fp_out_file) / in_file_size * 100), in_file_name);
     
     // Close opened file and free allocated memory
     fclose(fp_in_file);
