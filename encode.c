@@ -34,7 +34,7 @@ unsigned short int populateEncodedCharactersTable(node *root, int tree_level,
 
 /*
 *  Write the header of the compressed file, needed when decoding it,
-*  which the size of the input file, the size of the Huffman tree and the serialized Huffman tree.
+*  includes the size of the input file, the size of the Huffman tree and the serialized Huffman tree.
 *  Returns EOF if unsucessful.
 */
 int writeHeader(FILE *fp_out_file, long in_file_size, unsigned short int tree_size, node *root);
@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
     in_file_size = ftell(fp_in_file);
     if (writeHeader(fp_out_file, in_file_size, tree_size, root) == EOF)
     {
+        printf("Failed to write the header of the compressed file!\n");
         fclose(fp_in_file);
         fclose(fp_out_file);
         freeBinaryTree(root);
@@ -121,6 +122,7 @@ int main(int argc, char *argv[])
     fseek(fp_in_file, 0, SEEK_SET);
     if (writeEncodedFileContent(encoded_characters_table, fp_in_file, fp_out_file) == EOF)
     {
+        printf("Failed to write the encoded content!\n");
         fclose(fp_in_file);
         fclose(fp_out_file);
         freeBinaryTree(root);
@@ -255,7 +257,7 @@ unsigned short int populateEncodedCharactersTable(node *root, int tree_level,
 
 /*
 *  Write the header of the compressed file, needed when decoding it,
-*  which the size of the input file, the size of the Huffman tree and the serialized Huffman tree.
+*  includes the size of the input file, the size of the Huffman tree and the serialized Huffman tree.
 *  Returns EOF if unsucessful.
 */
 int writeHeader(FILE *fp_out_file, long in_file_size, unsigned short int tree_size, node *root)
@@ -264,7 +266,6 @@ int writeHeader(FILE *fp_out_file, long in_file_size, unsigned short int tree_si
         (fwrite(&tree_size, sizeof(tree_size), 1, fp_out_file) != 1) ||
         writeSerializedHuffmanTreeToFile(root, fp_out_file) == EOF)
     {
-        printf("Failed to write the header of the compressed file!\n");
         return EOF;
     }
 
@@ -314,7 +315,6 @@ int writeEncodedFileContent(char encoded_characters_table[NUM_ASCII][MAX_ENCODED
         {
             if (writeBitToFile(fp_out_file, encoded_characters_table[character][i] - '0') == EOF)
             {
-                printf("Failed to write the encoded content!\n");
                 return EOF;
             }
         }

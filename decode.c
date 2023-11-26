@@ -10,7 +10,7 @@
 // Reconstruct the serialized Huffman tree in the header of the compressed file. Returns the root of the tree or NULL if unsuccessful.
 node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size);
 
-// Decode an encoded message using the Huffman tree. Returns 0 if successful and EOF if unsucessful.
+// Decode an encoded file content using the Huffman tree. Returns 0 if successful and EOF if unsucessful.
 int writeDecodedContent(node *root, long decoded_file_size, FILE *fp_in_file, FILE *fp_out_file);
 
 // Read a char bit by bit using readBitFromFile(). Returns EOF if unsucessful.
@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
     // Write the decoded content of the input file into the output file
     if (writeDecodedContent(root, decoded_file_size, fp_in_file, fp_out_file) == EOF)
     {
+        printf("Failed write the decoded content!");
         fclose(fp_in_file);
         fclose(fp_out_file);
         freeBinaryTree(root);
@@ -156,14 +157,14 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
 }
 
 
-// Decode an encoded message using the Huffman tree. Returns 0 if successful and EOF if unsucessful.
+// Decode an encoded file content using the Huffman tree. Returns 0 if successful and EOF if unsucessful.
 int writeDecodedContent(node *root, long decoded_file_size, FILE *fp_in_file, FILE *fp_out_file)
 {
     node *trav = root; // Used to traverse the Huffman tree
     char bit;
     long characters_written = 0;
 
-    // Follow the tree path from encoded_message
+    // Follow the tree path from the encoded file content
     while (characters_written < decoded_file_size)
     {
         if (readBitFromFile(fp_in_file, &bit) == EOF)
@@ -181,13 +182,12 @@ int writeDecodedContent(node *root, long decoded_file_size, FILE *fp_in_file, FI
             trav = trav->right;
         }
 
-        // If we reached a leaf (the symbols are stored in the leafs. the other nodes have '\0' for their symbol), 
-        // store its symbol in decoded_message and go back to the root of the Huffman tree.
+        // If we reached a leaf (the characters are stored in the leafs), 
+        // store its code into the decoded file and go back to the root of the Huffman tree.
         if (trav->left == NULL && trav->right == NULL)
         {
             if (fputc(trav->character, fp_out_file) == EOF)
             {
-                printf("Failed to allocate memory for a symbol in the decoded message file!");
                 return EOF;
             }
             trav = root;
