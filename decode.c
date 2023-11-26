@@ -17,7 +17,7 @@ int readBitFromFile(FILE *fp_in_file, char *bit);
 int main(int argc, char *argv[])
 {
     char in_file_name[FILE_NAME_MAX_LENGTH + COMPRESSED_FILE_EXTENSION_LENGTH] = {'\0'};  // container for the name of the compressed input file
-    char out_file_name[FILE_NAME_MAX_LENGTH + 8] = "decoded_";  // The name of the output decoded file
+    char out_file_name[FILE_NAME_MAX_LENGTH - COMPRESSED_FILE_EXTENSION_LENGTH + 8] = "decoded_";  // The name of the output decoded file
     node *root;  // The root of the reconstructed Huffman tree
     FILE *fp_in_file = NULL;  // File pointer for the input file
     FILE *fp_out_file = NULL;  // File pointer for the output file
@@ -25,18 +25,23 @@ int main(int argc, char *argv[])
     unsigned short int tree_size; // number of nodes in the Huffman tree
 
     // Get the name of the file that will be decompressed from the CLA; Make sure it ends with COMPRESSED_FILE_EXTENSION (.huff)
-    if ((getFileName(argc, argv, in_file_name, FILE_NAME_MAX_LENGTH + COMPRESSED_FILE_EXTENSION_LENGTH) == -1)
-        || (strlen(in_file_name) < COMPRESSED_FILE_EXTENSION_LENGTH + 1)
-        || (strcmp(in_file_name + strlen(in_file_name) - COMPRESSED_FILE_EXTENSION_LENGTH + 1, COMPRESSED_FILE_EXTENSION) != 0))
+    if ((getFileName(argc, argv, in_file_name, FILE_NAME_MAX_LENGTH + COMPRESSED_FILE_EXTENSION_LENGTH) == -1))
     {
-        perror("Invalid input file name!\n");
         return INVALID_FILE_NAME;
     }
+
+    if ((strlen(in_file_name) < COMPRESSED_FILE_EXTENSION_LENGTH + 1)
+        || (strcmp(in_file_name + strlen(in_file_name) - COMPRESSED_FILE_EXTENSION_LENGTH + 1, COMPRESSED_FILE_EXTENSION) != 0))
+    {
+        printf("The input file must have %s extension\n", COMPRESSED_FILE_EXTENSION);
+        return INVALID_FILE_NAME;
+    }
+
     // Open the input .huff file that will be decoded
     fp_in_file = fopen(in_file_name, "r");
     if (fp_in_file == NULL)
     {
-        perror("Failed to open the input file!\n");
+        printf("Failed to open the input file!\n");
         return FAIL_OPEN_INPUT_FILE;
     }
 
@@ -44,7 +49,7 @@ int main(int argc, char *argv[])
     if (fread(&decoded_file_size, sizeof(decoded_file_size), 1, fp_in_file) < 1
         || fread(&tree_size, sizeof(tree_size), 1, fp_in_file) < 1)
     {
-        perror("Failed to read the header of the input file!");
+        printf("Failed to read the header of the input file!");
         fclose(fp_in_file);
         return FAIL_READ_HEADER;
     }
@@ -53,7 +58,7 @@ int main(int argc, char *argv[])
     root = ReconstructHuffmanTree(fp_in_file, tree_size);
     if (root == NULL)
     {
-        perror("Failed to create the Huffman tree!");
+        printf("Failed to create the Huffman tree!");
         fclose(fp_in_file);
         return FAIL_CREATE_HUFFMAN_TREE;
     }
@@ -65,7 +70,7 @@ int main(int argc, char *argv[])
     fp_out_file = fopen(out_file_name, "w");
     if (fp_out_file == NULL)
     {
-        perror("Failed to open the output file!\n");
+        printf("Failed to open the output file!\n");
         fclose(fp_in_file);
         freeBinaryTree(root);
         return FAIL_OPEN_OUTPUT_FILE;
@@ -80,7 +85,7 @@ int main(int argc, char *argv[])
         return FAIL_READ_BODY;
     }
 
-    printf("\nSuccessfully deencoded %s into %s!\n", in_file_name, out_file_name);
+    printf("\nSuccessfully decoded %s into %s!\n", in_file_name, out_file_name);
 
     // Close opened file and free allocated memory
     fclose(fp_in_file);
@@ -172,11 +177,11 @@ int writeDecodedContent(node *root, long decoded_file_size, FILE *fp_in_file, FI
 
         // If we reached a leaf (the symbols are stored in the leafs. the other nodes have '\0' for their symbol), 
         // store its symbol in decoded_message and go back to the root of the Huffman tree.
-        if (trav->character)
+        if (trav->left == NULL && trav->right == NULL)
         {
             if (fputc(trav->character, fp_out_file) == EOF)
             {
-                perror("Failed to allocate memory for a symbol in the decoded message file!");
+                printf("Failed to allocate memory for a symbol in the decoded message file!");
                 return EOF;
             }
             trav = root;
@@ -217,7 +222,7 @@ int readBitFromFile(FILE *fp_in_file, char *bit)
     {
         if ((i_byte = fgetc(fp_in_file)) == EOF)
         {
-            perror("Failed to read a byte from input file!");
+            printf("Failed to read a byte from input file!");
             return EOF;
         }
         remaining_bits = CHAR_BIT;

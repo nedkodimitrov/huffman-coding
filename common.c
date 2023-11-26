@@ -7,7 +7,7 @@ int getFileName(int argc, char *argv[], char *filename, size_t max_length)
     {
         if (strlen(argv[1]) > max_length)
         { 
-            perror("File name is too long!");
+            printf("File name is too long!");
             return -1;
         }
         strcpy(filename, argv[1]);
@@ -40,7 +40,7 @@ node *createNode(char character, int frequency, node *left, node *right)
     node *new_node = malloc(sizeof(node));
     if (new_node == NULL)
     {
-        perror("Failed to allocate memory for a tree node!\n");
+        printf("Failed to allocate memory for a tree node!\n");
         return NULL;
     }
     new_node->character = character;
@@ -57,7 +57,7 @@ priority_queue_element *createPriorityQueueElement(char character, int frequency
     priority_queue_element *new_element = malloc(sizeof(priority_queue_element));
     if (new_element == NULL)
     {
-        perror("Failed to allocate memory for a priority queue element!\n");
+        printf("Failed to allocate memory for a priority queue element!\n");
         return NULL;
     }
 

@@ -1,10 +1,17 @@
+/*
+ * Encode a .txt file using Huffman coding
+ * Usage: ./encode <txt input file>
+*/
+
+
 #include "common.h"
 
 
 // Number of ASCII characters. Used to determine the size of frequency_table and encoded_characters_table
 #define NUM_ASCII 256
-// Max length of the huffman code for a single character (im not quite sure what it should be, maybe needs to be set to the height of the tree.)
-#define MAX_ENCODED_CHARACTER_LENGTH 20
+// Max length of the huffman code for a single character
+// (probably can be optimized)
+#define MAX_ENCODED_CHARACTER_LENGTH 64
 
 
 // Create a Huffman tree from file content. Returns tree root or NULL if unsuccessful.
@@ -72,7 +79,7 @@ int main(int argc, char *argv[])
     fp_in_file = fopen(in_file_name, "r");
     if (fp_in_file == NULL)
     {
-        perror("Failed to open the input file!\n");
+        printf("Failed to open the input file!\n");
         return FAIL_OPEN_INPUT_FILE;
     }
 
@@ -80,7 +87,7 @@ int main(int argc, char *argv[])
     root = createHuffmanTree(fp_in_file);
     if (root == NULL)
     {
-        perror("Failed to create the Huffman tree!");
+        printf("Failed to create the Huffman tree!");
         fclose(fp_in_file);
         return FAIL_CREATE_HUFFMAN_TREE;
     }
@@ -94,7 +101,7 @@ int main(int argc, char *argv[])
     fp_out_file = fopen(out_file_name, "w");
     if (fp_out_file == NULL)
     {
-        perror("Failed to open the output file!\n");
+        printf("Failed to open the output file!\n");
         fclose(fp_in_file);
         freeBinaryTree(root);
         return FAIL_OPEN_OUTPUT_FILE;
@@ -173,7 +180,7 @@ priority_queue_element *frequencyTableToPriorityQueue(int *frequency_table)
             // Add a new element to the queue that contains a tree node of that character and the character's frequency
             if (insertIntoPriorityQueue(&priority_queue, (char)(i), frequency_table[i], NULL, NULL) == -1)
             {
-                perror("Failed to create the priority queue from the frequency table!\n");
+                printf("Failed to create the priority queue from the frequency table!\n");
                 freePriorityQueue(&priority_queue);
                 return NULL;
             }
@@ -205,7 +212,7 @@ node *priorityQueueToHuffmanTree(priority_queue_element **p_priority_queue)
         // Add a new element to priority_queue which is a parent to the first two and its node frequency is the sum of the two.
         if (insertIntoPriorityQueue(p_priority_queue, '\0', node1->frequency + node2->frequency, node1, node2) == -1)
         {
-            perror("Failed to create the Hufman tree from the priority queue!\n");
+            printf("Failed to create the Hufman tree from the priority queue!\n");
             freePriorityQueue(p_priority_queue);
             return NULL;
         }
@@ -257,7 +264,7 @@ int writeHeader(FILE *fp_out_file, long in_file_size, unsigned short int tree_si
         (fwrite(&tree_size, sizeof(tree_size), 1, fp_out_file) != 1) ||
         writeSerializedHuffmanTreeToFile(root, fp_out_file) == EOF)
     {
-        perror("Failed to write the header of the compressed file!\n");
+        printf("Failed to write the header of the compressed file!\n");
         return EOF;
     }
 
@@ -307,7 +314,7 @@ int writeEncodedFileContent(char encoded_characters_table[NUM_ASCII][MAX_ENCODED
         {
             if (writeBitToFile(fp_out_file, encoded_characters_table[character][i] - '0') == EOF)
             {
-                perror("Failed to write the encoded content!\n");
+                printf("Failed to write the encoded content!\n");
                 return EOF;
             }
         }
@@ -318,7 +325,7 @@ int writeEncodedFileContent(char encoded_characters_table[NUM_ASCII][MAX_ENCODED
     {
         if (writeBitToFile(fp_out_file, 0) == EOF)
         {
-            perror("Failed to write the last byte!\n");
+            printf("Failed to write the last byte!\n");
             return EOF;
         }
     }
@@ -357,7 +364,7 @@ int writeBitToFile(FILE *fp_out_file, char bit)
     {
         if (fputc(byte, fp_out_file) == EOF)
         {
-            perror("Failed to write a byte to the output file!");
+            printf("Failed to write a byte to the output file!");
             return EOF;
         }
 
