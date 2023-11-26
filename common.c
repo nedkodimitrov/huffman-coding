@@ -1,3 +1,9 @@
+/*
+ * Functions related to the data structures in common.h
+ * used both in encode and decode
+*/
+
+
 #include "common.h"
 
 

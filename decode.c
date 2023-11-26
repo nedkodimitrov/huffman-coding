@@ -1,3 +1,9 @@
+/*
+ * Decode a .huff file created by ./encode
+ * Usage: ./encode <huffman encoded file>
+*/
+
+
 #include "common.h"
 
 
@@ -101,7 +107,7 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
 {
     char bit;
     char character;
-    static priority_queue_element *stack_top = NULL;
+    static priority_queue_element *stack_top = NULL;  // Here the priority queue is used as a stack that helps us reconstruct the serialized Huffman tree
     node *node1 = NULL, *node2 = NULL;
     node *root = NULL;
 
@@ -116,7 +122,7 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
         
         if (bit == 1)  // Leaves are denoted as 1 followed by a character (The characters are stored in the leaves of the Huffman tree).
         {
-            // Push a new element to the stack
+            // If the node is a leaf, push it to the stack
             if (readCharFromFile(fp_in_file, &character) == EOF || pushToPriorityQueue(&stack_top, character, 1, NULL, NULL) == -1)
             {
                 freePriorityQueue(&stack_top);
@@ -125,7 +131,7 @@ node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size)
         }
         else  // Parent nodes are denoted as 0
         {
-            // Pop 2 elements from the stack and add a new one which is parent to them and has no character associated with it.
+            // If the node is not a leaf, pop 2 nodes from the stack and add a new one which is parent to them and has no character associated with it.
             node1 = popPriorityQueue(&stack_top);
             node2 = popPriorityQueue(&stack_top);
             if (node1 == NULL || node2 == NULL || pushToPriorityQueue(&stack_top, '\0', 1, node2, node1) == -1)

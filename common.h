@@ -1,3 +1,7 @@
+/*
+ * Data structures, macros and function declarations
+ * used both in encode and decode
+*/
 
 
 #ifndef COMMON_H
@@ -8,10 +12,11 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#define FILE_NAME_MAX_LENGTH 100
-#define COMPRESSED_FILE_EXTENSION ".huff"
-#define COMPRESSED_FILE_EXTENSION_LENGTH sizeof(COMPRESSED_FILE_EXTENSION)
+#define FILE_NAME_MAX_LENGTH 100  // Max length of the name of the unencoded file
+#define COMPRESSED_FILE_EXTENSION ".huff"  // the extension of the encoded file
+#define COMPRESSED_FILE_EXTENSION_LENGTH sizeof(COMPRESSED_FILE_EXTENSION)  // length of the extension of the encoded file
 
+// Error codes
 #define INVALID_FILE_NAME 1
 #define FAIL_OPEN_INPUT_FILE 2
 #define FAIL_CREATE_HUFFMAN_TREE 3
