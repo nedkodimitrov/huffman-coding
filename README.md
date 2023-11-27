@@ -59,22 +59,23 @@ void populateFrequencyTable(FILE *fp_in_file, int *frequency_table);
 
 | Character | Frequency |
 |----------|----------|
+| frequncy_table[' '] | 2 |
 | frequncy_table['e'] | 1 |
+| frequncy_table['g'] | 3 |
 | frequncy_table['h'] | 1 |
+| frequncy_table['o'] | 3 |
 | frequncy_table['p'] | 1 |
 | frequncy_table['r'] | 1 |
 | frequncy_table['s'] | 1 |
-| frequncy_table[' '] | 2 |
-| frequncy_table['g'] | 3 |
-| frequncy_table['o'] | 3 |
 
+The frequencies of the other characters are set to 0.  
 
 ```c
 // Create a priority queue from a frequency table (priority queue where Huffman tree nodes are sorted by their character's frequency).
 // Returns the head of the queue or NULL if unsuccessful.
 priority_queue_element *frequencyTableToPriorityQueue(int *frequency_table);
 ```
-
+Insert all the characters with freqency greater than 0 into the Priority queue.  
 ![](explanation/frequencyTableToPriorityQueue.png)
 
 ```c 
