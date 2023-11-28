@@ -127,7 +127,8 @@ where going to the left subtree is coded as '0' and to the right as '1'.
 | encoded_characters_table['p'] | "1110" |
 | encoded_characters_table['r'] | "1111" |
 | encoded_characters_table['s'] | "100" |
- 
+
+ Notice that no bit-sequence encoding of a character is the prefix of the bit-sequence encoding of any other character and that the higher frequency a character has, the shorter its code is.
 
 ```c
 /*
