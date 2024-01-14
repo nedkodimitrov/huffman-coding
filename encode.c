@@ -181,7 +181,7 @@ node *priorityQueueToHuffmanTree(priority_queue_element **p_priority_queue)
 unsigned short int populateEncodedCharactersTable(node *root, int tree_level,
         char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH])
 {
-    static char character_code[MAX_ENCODED_CHARACTER_LENGTH] = {'\0'}; // Keeps track of the path in the tree to the character (which is how the character is encoded).
+    static char buf_character_code[MAX_ENCODED_CHARACTER_LENGTH] = {'\0'}; // Keeps track of the path in the tree to the character (which is how the character is encoded).
     unsigned short int num_nodes = 0; // total number of nodes in the tree
 
     if (root)
@@ -189,20 +189,20 @@ unsigned short int populateEncodedCharactersTable(node *root, int tree_level,
         num_nodes ++;
 
         // Write 0 to the path to the leaf when going to the left subtree
-        character_code[tree_level] = '0';
+        buf_character_code[tree_level] = '0';
         num_nodes += populateEncodedCharactersTable(root->left, tree_level + 1, encoded_characters_table);
 
         // Write 1 to the path to the leaf when going to the right subtree
-        character_code[tree_level] = '1';
+        buf_character_code[tree_level] = '1';
         num_nodes += populateEncodedCharactersTable(root->right, tree_level + 1, encoded_characters_table);
 
         if (root->left == NULL && root->right == NULL)
         {
             // The characters are stored in the leaves. Store the path to the leaf in the coresponding row of encoded_characters_table. 
             // E.g. encoded_characters_table['a'] = "001"
-            character_code[tree_level] = '\0';
-            strcpy(encoded_characters_table[(int)root->character], character_code);
-            printf("Character:%c, Encoded:%s\n", root->character, character_code);
+            buf_character_code[tree_level] = '\0';
+            strcpy(encoded_characters_table[(int)root->character], buf_character_code);
+            printf("Character:%c, Encoded:%s\n", root->character, buf_character_code);
         }
     }
 
