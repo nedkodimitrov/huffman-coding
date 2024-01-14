@@ -3,54 +3,7 @@
  * Usage: ./encode <txt input file>
 */
 
-
-#include "common.h"
-
-
-// Number of ASCII characters. Used to determine the size of frequency_table and encoded_characters_table
-#define NUM_ASCII 256
-// Max length of the huffman code for a single character
-// (probably can be optimized)
-#define MAX_ENCODED_CHARACTER_LENGTH 64
-
-
-// Create a Huffman tree from file content. Returns tree root or NULL if unsuccessful.
-node *createHuffmanTree(FILE *fp_in_file);
-
-// Populate a frequency table for a given file's content (how many times each character is encountered in the file)
-void populateFrequencyTable(FILE *fp_in_file, int *frequency_table);
-
-// Create a priority queue from a frequency table (priority queue where Huffman tree nodes are sorted by their character's frequency).
-// Returns the head of the queue or NULL if unsuccessful.
-priority_queue_element *frequencyTableToPriorityQueue(int *frequency_table);
-
-// Transform a priority queue into a Huffman tree and free the memory used by the queue. Returns the root of the tree or NULL if unsuccesful.
-node *priorityQueueToHuffmanTree(priority_queue_element **p_priority_queue);
-
-// Recursively traverse the Huffman tree and encode characters and store their binary representation (path in the tree) in encoded_characters_table.
-// Returns the total number of nodes in the tree, which is saved in the header of the compressed file, so that the tree can be reconstructed when decoding.
-unsigned short int populateEncodedCharactersTable(node *root, int tree_level,
-        char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH]);
-
-/*
-*  Write the header of the compressed file, needed when decoding it,
-*  includes the size of the input file, the size of the Huffman tree and the serialized Huffman tree.
-*  Returns EOF if unsucessful.
-*/
-int writeHeader(FILE *fp_out_file, long in_file_size, unsigned short int tree_size, node *root);
-
-// Recursively traverse the Huffman tree and write it as serialized into a file. Returns EOF if unsucessful.
-int writeSerializedHuffmanTreeToFile(node *root, FILE *fp_out_file);
-
-// Encode a file using the Huffman tree built from it. Returns EOF if unsucessful.
-int writeEncodedFileContent(char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH], FILE *fp_in_file,
-                            FILE *fp_out_file);
-
-// After CHAR_BIT (8) bits have been accumulated, write a byte to the file. Returns EOF if unsucessful.
-int writeBitToFile(FILE *fp_out_file, char bit);
-
-// Write a char bit by bit using writeBitToFile(). Returns EOF if unsucessful.
-int writeCharToFile(FILE *fp_out_file, char byte);
+#include "encode.h"
 
 
 int main(int argc, char *argv[])
@@ -64,7 +17,7 @@ int main(int argc, char *argv[])
     * Table to store characters and their Huffman binary codes 
     * first dimension corresponds to ASCII character, second dimension is the encoded character (the path in the Huffman tree)
     * e.g. encoded_characters_table['a'] = "001"
-    * used because otherwise would have to blindly traverse the whole tree for every character when compressing the input file.
+    * used because otherwise would have to blindly traverse the whole tree for every character when encoding the input file.
     */
     char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH] = { [0 ... NUM_ASCII - 1] = { '\0' } };
     unsigned short int tree_size; // number of nodes in the Huffman tree
@@ -228,7 +181,7 @@ node *priorityQueueToHuffmanTree(priority_queue_element **p_priority_queue)
 unsigned short int populateEncodedCharactersTable(node *root, int tree_level,
         char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH])
 {
-    static char character_code[MAX_ENCODED_CHARACTER_LENGTH] = {'\0'}; // Keeps track of the path in the tree to the character (which is how the character is encoded).
+    static char buf_character_code[MAX_ENCODED_CHARACTER_LENGTH] = {'\0'}; // Keeps track of the path in the tree to the character (which is how the character is encoded).
     unsigned short int num_nodes = 0; // total number of nodes in the tree
 
     if (root)
@@ -236,20 +189,20 @@ unsigned short int populateEncodedCharactersTable(node *root, int tree_level,
         num_nodes ++;
 
         // Write 0 to the path to the leaf when going to the left subtree
-        character_code[tree_level] = '0';
+        buf_character_code[tree_level] = '0';
         num_nodes += populateEncodedCharactersTable(root->left, tree_level + 1, encoded_characters_table);
 
         // Write 1 to the path to the leaf when going to the right subtree
-        character_code[tree_level] = '1';
+        buf_character_code[tree_level] = '1';
         num_nodes += populateEncodedCharactersTable(root->right, tree_level + 1, encoded_characters_table);
 
         if (root->left == NULL && root->right == NULL)
         {
             // The characters are stored in the leaves. Store the path to the leaf in the coresponding row of encoded_characters_table. 
             // E.g. encoded_characters_table['a'] = "001"
-            character_code[tree_level] = '\0';
-            strcpy(encoded_characters_table[(int)root->character], character_code);
-            printf("Character:%c, Encoded:%s\n", root->character, character_code);
+            buf_character_code[tree_level] = '\0';
+            strcpy(encoded_characters_table[(int)root->character], buf_character_code);
+            printf("Character:%c, Encoded:%s\n", root->character, buf_character_code);
         }
     }
 
