@@ -14,10 +14,12 @@ int main(int argc, char *argv[])
     FILE *fp_out_file = NULL;  // File pointer for the output file
     node *root = NULL;  // The root of the Huffman tree
     /*
-    * Table to store characters and their Huffman binary codes 
-    * first dimension corresponds to ASCII character, second dimension is the encoded character (the path in the Huffman tree)
+    * Table to store characters and their Huffman binary codes.
+    * First dimension corresponds to ASCII character, second dimension is the encoded character (the path in the Huffman tree).
     * e.g. encoded_characters_table['a'] = "001"
-    * used because otherwise would have to blindly traverse the whole tree for every character when encoding the input file.
+    * This table is used because otherwise would have to blindly traverse the tree for every character when encoding the input file.
+    * ( In the future might dynamically allocate memory for every character according to its depth in the tree
+    * instead of using a predetermined second dimension of size MAX_ENCODED_CHARACTER_LENGTH )
     */
     char encoded_characters_table[NUM_ASCII][MAX_ENCODED_CHARACTER_LENGTH] = { [0 ... NUM_ASCII - 1] = { '\0' } };
     unsigned short int tree_size; // number of nodes in the Huffman tree
