@@ -133,12 +133,12 @@ where going to the left subtree is coded as '0' and to the right as '1'.
 ```c
 /*
 *  Write the header of the compressed file, needed when decoding it,
-*  includes the size of the input file as long int, the size of the Huffman tree as sort unsigned int and the serialized Huffman tree.
+*  includes the size of the input file as long int, the size of the Huffman tree as short unsigned int and the serialized Huffman tree.
 *  Returns EOF if unsucessful.
 */
 int writeHeader(FILE *fp_out_file, long in_file_size, unsigned short int tree_size, node *root);
 ```
-For this example it is:  
+For this example the file header is (spaces are just for easier visualization):  
 - 00001011 00000000 00000000 00000000 00000000 00000000 00000000 00000000 - 13 - the number of characters in "go go gophers"  
 - 00001111 00000000 - 15 - the number of nodes in the Huffman tree  
 - 1 01100111 1 0110111 0 1 01110011 1 00100000 0 1 01100101 1 01101000 0 0111000 1 01110010 0 0 0 0 - 1g1o01s1 01e1h01p1r0000 - the serialized Huffman tree, where leaves are stored as 1 followed by the ascii code for the character and parent nodes are stored as 0.
@@ -151,8 +151,8 @@ int writeEncodedFileContent(char encoded_characters_table[NUM_ASCII][MAX_ENCODED
 ```
 Read the input txt file char by char and store each char's binary code from `ecoded_characters_table` in the encoded file.  
 
-For this example "go go gophers" becomes  
-00 01 101 00 01 101 00 01 1110 1101 1100 1111 100
+For this example when "go go gophers" is encoded it becomes:
+- 00 01 101 00 01 101 00 01 1110 1101 1100 1111 100
 
 ### Note that all the 0s and 1s are stored as bits and not bytes in the encoded file so that they take up less disk space.
 This is achieved by using the functions `writeBitToFile()` and `writeCharToFile()` that allow us to accumulate bits until a byte is filled and write it into the encoded file.
@@ -161,6 +161,9 @@ This is achieved by using the functions `writeBitToFile()` and `writeCharToFile(
 
 ## Decoding explained
 
+First read the size of the decoded input file content as long int and the size of the Huffman tree as short unsigned int from the input file header.
+
+Then reconstruct the Huffman tree:
 ```c
 // Reconstruct the serialized Huffman tree in the header of the compressed file. Returns the root of the tree or NULL if unsuccessful.
 node *ReconstructHuffmanTree(FILE *fp_in_file, unsigned short int tree_size);
@@ -170,13 +173,13 @@ This is achieved using a stack.
 
 1g1o01s1 01e1h01p1r0000 - serialized Huffman tree in the header of the encoded file  
 
-1g - push 'g'  
+1g - push 'g' to the stack  
 ![](explanation/ReconstructHuffmanTree1.png)
 
-1o - push 'o'  
+1o - push 'o' to the stack  
 ![](explanation/ReconstructHuffmanTree2.png)  
 
-0  - pop 'o' and 'g' and push their parent  
+0  - pop 'o' and 'g' from the stack and push their parent  
 ![](explanation/ReconstructHuffmanTree3.png)  
 
 1s - push 's'  
@@ -216,11 +219,13 @@ This is achieved using a stack.
 ![](explanation/ReconstructHuffmanTree15.png)  
 
 
+Finally decode the content:
+
 ```c
 // Decode an encoded file content using the Huffman tree. Returns 0 if successful and EOF if unsucessful.
 int writeDecodedContent(node *root, long decoded_file_size, FILE *fp_in_file, FILE *fp_out_file);
 
-```
+``` 
 
 ![](explanation/tree.png)  
 
