@@ -234,3 +234,9 @@ To unveil the content of an encoded file, proceed by parsing it bit by bit. Begi
 
 ### Note that all the 0s and 1s are read as bits and not bytes from the encoded file
 This is achieved by using the functions `readBitFromFile()` and `readCharFromFile()` that allow us to read a byte bit by bit and if all the bits have been read, fetch a new byte and repeat.
+
+<br>
+
+## FIXME
+- Use ``uint16_t`` instead of ``unsigned short int`` and ``int64_t`` instead of ``long``
+- Fix ``populateEncodedCharactersTable()`` - prevent buffer overflow by either comparing ``tree_level`` to ``MAX_ENCODED_CHARACTER_LENGTH`` or by dynamically alocating memory for ``encoded_characters_table``
